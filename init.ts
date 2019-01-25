@@ -5,8 +5,8 @@ module Example{
         constructor() {
             let config = {
                 type: Phaser.AUTO,
-                width: window.innerWidth,
-                height: window.innerHeight,
+                width: 800,
+                height: 600,
                 scene: [new LevelOne()],
                 banner: true,
                 title: 'Example',
@@ -33,49 +33,77 @@ module Example{
          logo2!: Phaser.Physics.Arcade.Image;
          sprite!: Phaser.Physics.Arcade.Sprite;
          tile! :any;
+         platforms!:Phaser.Physics.Arcade.StaticGroup;
+         player! : Phaser.Physics.Arcade.Sprite;
+         cursors!: Phaser.Input.Keyboard.CursorKeys;
          constructor() {
              super({key : "LevelOne"})
          }
          preload(){
-        this.load.setBaseURL('http://labs.phaser.io');
-        this.load.image('sky', 'assets/skies/space3.png');
-        this.load.image('logo', 'assets/sprites/phaser3-logo.png');
-        this.load.image('red', 'assets/particles/red.png');
+        // this.load.setBaseURL('./assets');
+        this.load.image('sky', 'assets/sky.jpg');
+        this.load.image('ground', 'assets/ground.png');
+
+        this.load.spritesheet('dude', 
+        'assets/dude-sprite.png',
+        { frameWidth: 21, frameHeight: 35 },
+    );
+    this.load.spritesheet('run' , 'assets/run.png' , {frameWidth : 23 , frameHeight : 34});
         
-        this.load.image('bullet', 'assets/games/invaders/bullet.png');
          }
          create() {
-            this.sprite = this.physics.add.sprite(400 , 0 , 'logo'); 
-            this.tile = this.add.tileSprite(300, 450, 200, 100, 'red');
+            this.player = this.physics.add.sprite(300, window.innerHeight-200, 'dude');
+            this.player.setBounce(12);
+            this.player.setCollideWorldBounds(true);
+            this.player.setScale(2.4);
+            this.anims.create({
+                key: 'idle',
+                frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
+                frameRate: 20,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'run',
+                frames: this.anims.generateFrameNumbers('run', { start: 0, end: 7 }),
+                frameRate: 20,
+                repeat: -1
+            });
+            this.player.play('idle');
+            
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.platforms = this.physics.add.staticGroup();
+            this.platforms.create(400, 568, 'ground').setScale(0.2 , 0.08).refreshBody();
+            console.log(this.platforms.getFirst());
+            this.platforms.create(600, 400, 'ground').setScale(0.08).refreshBody();
+            this.platforms.create(50, 250, 'ground').setScale(0.08).refreshBody();
+            this.platforms.create(750, 220, 'ground').setScale(0.08).refreshBody();
 
-            var particles = this.add.particles('red');
-    
-            var emitter = particles.createEmitter({
-                    speed: 100,
-                    scale: { start: 1, end: 0 },
-                    blendMode: 1, 
-                });
-                
-                this.logo = this.physics.add.image(400, 100, 'logo');
-                this.logo2 = this.physics.add.image(100, 400, 'logo');
-                this.logo.setVelocity(100, 200);
-                this.logo2.setVelocity(-100, -200);
-                this.logo2.setBounce(1, 1);
+            this.physics.add.collider(this.player, this.platforms);
 
-                this.logo.setBounce(1, 1);
-                this.logo2.setBounce(1,1);
-                this.logo2.setCollideWorldBounds(true);
-                this.logo.setCollideWorldBounds(true);
-                this.physics.add.collider(this.logo , [this.logo2 , this.logo , this.sprite]);
-        
-            emitter.startFollow(this.logo);
+
          }
          update() {
-             this.sprite.y +=5; 
-             this.logo.setVelocityX(this.logo.body.velocity.x);
-             this.logo.addListener('click' , () => { 
-                 console.log('idl');
-             })
+            if (this.cursors.right!.isDown)
+            {
+                this.player.x+=1;
+                this.player.flipX = false;
+                this.player.play('run' , true);
+            }
+           
+            else if(this.cursors.left!.isDown) {
+                this.player.flipX = true;
+                this.player.x-=1;
+                this.player.play('run' , true);
+            }
+            else{ 
+                this.player.play('idle' , true);
+            }
+
+            if (this.cursors.up!.isDown && this.player.body.touching.down)
+{               
+                console.log(1)
+                this.player.setVelocityY(-230);
+}
         }
      }
      }
