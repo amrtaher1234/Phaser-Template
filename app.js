@@ -54,58 +54,113 @@ var Example;
             // this.load.setBaseURL('./assets');
             this.load.image('sky', 'assets/sky.jpg');
             this.load.image('ground', 'assets/ground.png');
+            this.load.image('apple', 'assets/apple.png');
+            this.load.spritesheet('jump', 'assets/jump.png', { frameWidth: 17, frameHeight: 34 });
+            this.load.spritesheet('land', 'assets/land.png', { frameWidth: 17, frameHeight: 35 });
             this.load.spritesheet('dude', 'assets/dude-sprite.png', { frameWidth: 21, frameHeight: 35 });
             this.load.spritesheet('run', 'assets/run.png', { frameWidth: 23, frameHeight: 34 });
         };
         LevelOne.prototype.create = function () {
-            this.player = this.physics.add.sprite(300, window.innerHeight - 200, 'dude');
-            this.player.setBounce(12);
-            this.player.setCollideWorldBounds(true);
-            this.player.setScale(2.4);
-            this.anims.create({
-                key: 'idle',
-                frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
-                frameRate: 20,
-                repeat: -1
-            });
-            this.anims.create({
-                key: 'run',
-                frames: this.anims.generateFrameNumbers('run', { start: 0, end: 7 }),
-                frameRate: 20,
-                repeat: -1
-            });
-            this.player.play('idle');
+            this.hero = new Player(this, innerWidth / 2 - 100, innerHeight / 2, 'dude');
             this.cursors = this.input.keyboard.createCursorKeys();
             this.platforms = this.physics.add.staticGroup();
             this.platforms.create(400, 568, 'ground').setScale(0.2, 0.08).refreshBody();
-            console.log(this.platforms.getFirst());
             this.platforms.create(600, 400, 'ground').setScale(0.08).refreshBody();
             this.platforms.create(50, 250, 'ground').setScale(0.08).refreshBody();
             this.platforms.create(750, 220, 'ground').setScale(0.08).refreshBody();
-            this.physics.add.collider(this.player, this.platforms);
+            this.apples = this.physics.add.group({
+                key: 'apple',
+                repeat: 1,
+                setXY: { x: 170, y: 0, stepX: 70 }
+            });
+            this.apples.children.iterate(function (child) {
+                child.setScale(0.05);
+                child.setBounceY(Phaser.Math.FloatBetween(0.1, 0.3));
+            }, function () {
+            });
+            this.physics.add.overlap(this.hero, this.apples, function (p, s) {
+                s.destroy();
+            });
+            // this.apples.children.iterate(function (child : Phaser.Physics.Arcade.Body) {
+            //     child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+            // });
+            this.physics.add.collider(this.hero, [this.platforms]);
+            this.physics.add.collider(this.apples, this.platforms);
         };
         LevelOne.prototype.update = function () {
-            if (this.cursors.right.isDown) {
-                this.player.x += 1;
-                this.player.flipX = false;
-                this.player.play('run', true);
-            }
-            else if (this.cursors.left.isDown) {
-                this.player.flipX = true;
-                this.player.x -= 1;
-                this.player.play('run', true);
-            }
-            else {
-                this.player.play('idle', true);
-            }
-            if (this.cursors.up.isDown && this.player.body.touching.down) {
-                console.log(1);
-                this.player.setVelocityY(-230);
-            }
+            this.hero.handleInput(this.cursors);
         };
         return LevelOne;
     }(Phaser.Scene));
     Example.LevelOne = LevelOne;
+    var Player = /** @class */ (function (_super) {
+        __extends(Player, _super);
+        function Player(scene, x, y, path) {
+            var _this = _super.call(this, scene, x, y, path, 0) || this;
+            scene.add.existing(_this);
+            scene.physics.world.enable(_this);
+            _this.setCollideWorldBounds(true);
+            _this.setScale(2.4);
+            if (scene.anims.get('idle') == null) {
+                scene.anims.create({
+                    key: 'idle',
+                    frames: scene.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
+                    frameRate: 20,
+                    repeat: -1
+                });
+            }
+            if (scene.anims.get('run') == null) {
+                scene.anims.create({
+                    key: 'run',
+                    frames: scene.anims.generateFrameNumbers('run', { start: 0, end: 7 }),
+                    frameRate: 20,
+                    repeat: -1
+                });
+            }
+            if (scene.anims.get('jump') == null) {
+                scene.anims.create({
+                    key: 'jump',
+                    frames: scene.anims.generateFrameNumbers('jump', { start: 0, end: 1 }),
+                    frameRate: 5,
+                });
+            }
+            if (scene.anims.get('land') == null) {
+                scene.anims.create({
+                    key: 'land',
+                    frames: scene.anims.generateFrameNumbers('land', { start: 0, end: 1 }),
+                    frameRate: 5,
+                });
+            }
+            return _this;
+        }
+        Player.prototype.handleInput = function (cursors) {
+            if (this.body.velocity.y < 0) {
+                this.play('jump', true);
+            }
+            else if (this.body.velocity.y > 0) {
+                this.play('land', true);
+            }
+            if (cursors.right.isDown) {
+                this.x += 1;
+                this.flipX = false;
+                this.play('run', true);
+            }
+            else if (cursors.left.isDown) {
+                this.flipX = true;
+                this.x -= 1;
+                this.play('run', true);
+            }
+            else if (cursors.up.isDown && this.body.touching.down) {
+                this.setVelocityY(-350);
+            }
+            else {
+                if (this.body.touching.down)
+                    this.play('idle', true);
+            }
+        };
+        return Player;
+    }(Phaser.Physics.Arcade.Sprite));
+    Example.Player = Player;
 })(Example || (Example = {}));
 window.onload = function () {
     new Example.InitPhaser();
